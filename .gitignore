@@ -1,3 +1,4 @@
 /.env
 /context.json
 /memories.json
+/cogs/__pycache__
