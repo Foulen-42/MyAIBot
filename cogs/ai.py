@@ -69,7 +69,7 @@ class AI(commands.Cog):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
+                    "https://openrouter.ai/api/v1/chat/completions", 
                     json={
                         "model": "tngtech/deepseek-r1t2-chimera:free",
                         "messages": messages
