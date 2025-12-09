@@ -2,9 +2,12 @@ import json
 import os
 
 class MemoriesManager:
-    def __init__(self, file="memories.json"):
-        self.file = file
-        self.max_length = 100
+    def __init__(self):
+        self.folder = "data"
+        os.makedirs(self.folder, exist_ok=True)
+
+        self.file = os.path.join(self.folder, "memories.json")
+        self.max_length = 200
 
         if not os.path.exists(self.file):
             with open(self.file, "w", encoding="utf-8") as f:

@@ -66,35 +66,35 @@ class AI(commands.Cog):
         # -------------------------
         # Вызов OpenRouter API
         # -------------------------
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    "https://openrouter.ai/api/v1/chat/completions", 
-                    json={
-                        "model": "tngtech/deepseek-r1t2-chimera:free",
-                        "messages": messages
-                    },
-                    headers={
-                        "Authorization": f"Bearer {API_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                ) as resp:
+        async with message.channel.typing(): # показываем статус "печатает"
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        "https://openrouter.ai/api/v1/chat/completions", 
+                        json={
+                            "model": "tngtech/deepseek-r1t2-chimera:free",
+                            "messages": messages
+                        },
+                        headers={
+                            "Authorization": f"Bearer {API_KEY}",
+                            "Content-Type": "application/json"
+                        }
+                    ) as resp:
 
-                    raw_text = await resp.text()  # получаем текст, чтобы видеть ошибку целиком
-                    
-                    # Если ошибка (не 200) — выводим прямо текст ответа сервера
-                    if resp.status != 200:
-                        ai_answer = f"API Error {resp.status}:\n{raw_text}"
-                    else:
-                        data = await resp.json()
-                        ai_answer = (
-                            data.get("choices", [{}])[0]
-                            .get("message", {})
-                            .get("content", "Помилка API")
-                        )
+                        raw_text = await resp.text()  # получаем текст, чтобы видеть ошибку целиком
+                        
+                        if resp.status != 200:
+                            ai_answer = f"API Error {resp.status}:\n{raw_text}"
+                        else:
+                            data = await resp.json()
+                            ai_answer = (
+                                data.get("choices", [{}])[0]
+                                .get("message", {})
+                                .get("content", "Помилка API")
+                            )
 
-        except Exception as e:
-            ai_answer = f"Помилка під час виклику API: {e}"
+            except Exception as e:
+                ai_answer = f"Помилка під час виклику API: {e}"
 
         # -------------------------
         # Добавляем ответ AI в контекст

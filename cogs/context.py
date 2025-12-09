@@ -7,16 +7,23 @@ from disnake.ext import commands
 class ContextManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.file = "context.json"
-        self.timeout_minutes = 15  # сколько минут бездействия до закрытия окна
-        self.max_messages = 20     # длина контекста
 
-        # создать файл если нет
+        # -------------------------------
+        # Папка и путь как ты хочешь
+        # -------------------------------
+        self.folder = "data"
+        self.file = os.path.join(self.folder, "context.json")
+
+        os.makedirs(self.folder, exist_ok=True)
+
+        # если файла нет — создаём
         if not os.path.exists(self.file):
             with open(self.file, "w", encoding="utf-8") as f:
                 json.dump({}, f, ensure_ascii=False, indent=4)
 
-        # запускаем фоновую задачу очистки
+        self.timeout_minutes = 15
+        self.max_messages = 20
+
         bot.loop.create_task(self.session_cleanup_loop())
 
     # -----------------------------
