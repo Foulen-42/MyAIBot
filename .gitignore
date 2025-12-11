@@ -1,4 +1,4 @@
 /.env
-/data/context.json
-/data/memories.json
 /cogs/__pycache__
+data/memories.json
+data/context.json
