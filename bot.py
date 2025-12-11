@@ -28,7 +28,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # -----------------------------
 COGS = [
     "cogs.context",  # контекст с автоочисткой
-    "cogs.ai"                # AI-ког с обработкой спогадів
+    "cogs.ai",              # AI-ког с обработкой спогадів
+    "cogs.adminCommand"
 ]
 
 for cog in COGS:

@@ -3,15 +3,14 @@ import re
 import aiohttp
 import disnake
 from disnake.ext import commands
-
 from .memories import MemoriesManager
 
 API_KEY = os.getenv("API_KEY")
 DEFAULT_SYSTEM_PROMPT = (
     "Ти розмовляєш українською та допомагаєш користувачу."
-    "Якщо користувач запитує свій нік, відповідай коротко, дружелюбно та природно, Не додавай ID."
+    "Якщо користувач запитує свій нік, відповідай коротко, дружелюбно та природно, не додавай ID."
     "Спогади користувача використовуй при відповіді на відповідні питання."
-    "не відповідати любу конструкцію що схожа на [User: Assistant | ID: 0]."
+    "Не не показуваит користувачу конструкцію що схожа на [User: Assistant | ID: 0]."
 )
 
 class AI(commands.Cog):
@@ -21,20 +20,30 @@ class AI(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot:
-            return  # игнорируем сообщения ботов
+        if message.author.bot or not message.guild:
+            return  # игнорируем ботов и ЛС
 
         ctx_cog = self.bot.get_cog("ContextManager")
         if not ctx_cog:
             return
+
+        server_id = message.guild.id
+        server_data = ctx_cog.load().get(str(server_id))
+        if not server_data:
+            return  # сервер не зарегистрирован админом
+
+        # берём первый зарегистрированный канал
+        channel_id = int(list(server_data.keys())[0])
+        if message.channel.id != channel_id:
+            return  # игнорируем все остальные каналы
 
         user_text = message.content
 
         # -------------------------
         # Проверка на просьбу "запам'ятай"
         # -------------------------
-        pattern = r"^(запам'ятай|remember|запомни)\s+(.+)"
-        match = re.match(pattern, message.content, re.IGNORECASE)
+        pattern = r"^(запам'ятай|remember|запомни|запамятай)\s+(.+)"
+        match = re.match(pattern, user_text, re.IGNORECASE)
         if match:
             text_to_remember = match.group(2).strip()
             self.memories.add_memory(message.author.id, text_to_remember)
@@ -42,73 +51,56 @@ class AI(commands.Cog):
         # -------------------------
         # Добавляем сообщение в контекст
         # -------------------------
-        ctx_cog.add_message(
-            message.channel.id,
-            message.author.id,
-            message.author.name,
-            "user",
-            user_text
-        )
+        ctx_cog.add_message(server_id, channel_id, message.author.id, message.author.name, "user", user_text)
 
         # -------------------------
         # Формируем prompt: контекст + спогади
         # -------------------------
-        context = ctx_cog.get_context(message.channel.id)
+        context = ctx_cog.get_context(server_id, channel_id)
         user_memories = self.memories.get_memories(message.author.id)
-
+        
         messages = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         for msg in context:
-            user_info = f"[User: {msg['username']} | ID: {msg['user_id']}]"
-            messages.append({"role": msg["role"], "content": f"{user_info} {msg['content']}"})
+            messages.append({"role": msg["role"], "content": f"{msg['username']}: {msg['content']}"})
+
         for mem in user_memories:
             messages.append({"role": "system", "content": f"Спогад користувача: {mem}"})
 
+
         # -------------------------
-        # Вызов OpenRouter API
+        # Получаем модель сервера
         # -------------------------
-        async with message.channel.typing(): # показываем статус "печатает"
+        model_name = ctx_cog.get_model(server_id, channel_id) or "tngtech/deepseek-r1t2-chimera:free"
+
+        # -------------------------
+        # Вызов OpenRouter API с typing
+        # -------------------------
+        async with message.channel.typing():
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.post(
-                        "https://openrouter.ai/api/v1/chat/completions", 
-                        json={
-                            "model": "tngtech/deepseek-r1t2-chimera:free",
-                            "messages": messages
-                        },
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        json={"model": model_name, "messages": messages},
                         headers={
                             "Authorization": f"Bearer {API_KEY}",
                             "Content-Type": "application/json"
                         }
                     ) as resp:
-
-                        raw_text = await resp.text()  # получаем текст, чтобы видеть ошибку целиком
-                        
+                        raw_text = await resp.text()
                         if resp.status != 200:
                             ai_answer = f"API Error {resp.status}:\n{raw_text}"
                         else:
                             data = await resp.json()
-                            ai_answer = (
-                                data.get("choices", [{}])[0]
-                                .get("message", {})
-                                .get("content", "Помилка API")
-                            )
-
+                            ai_answer = data.get("choices", [{}])[0].get("message", {}).get("content", "Помилка API")
             except Exception as e:
                 ai_answer = f"Помилка під час виклику API: {e}"
 
         # -------------------------
         # Добавляем ответ AI в контекст
         # -------------------------
-        ctx_cog.add_message(
-            message.channel.id,
-            0,
-            "Assistant",
-            "assistant",
-            ai_answer
-        )
+        ctx_cog.add_message(server_id, channel_id, 0, "Assistant", "assistant", ai_answer)
 
         await message.channel.send(ai_answer)
-
 
 def setup(bot):
     bot.add_cog(AI(bot))
