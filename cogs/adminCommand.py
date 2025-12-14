@@ -3,8 +3,7 @@ from disnake.ext import commands
 
 AVAILABLE_MODELS = {
     "deepseek": "tngtech/deepseek-r1t2-chimera:free",
-    "amazon nova lite": "amazon/nova-2-lite-v1:free",
-    "gpt-oss": "openai/gpt-oss-20b:free",
+    "gpt-oss": "openai/gpt-oss-20b:free"
 }
 
 class AdminCommands(commands.Cog):

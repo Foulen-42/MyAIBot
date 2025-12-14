@@ -7,10 +7,11 @@ from .memories import MemoriesManager
 
 API_KEY = os.getenv("API_KEY")
 DEFAULT_SYSTEM_PROMPT = (
-    "Ти розмовляєш українською та допомагаєш користувачу."
+    "Ти допомагаєш користувачу, мову можна змінювати за бажанням користувача."
     "Якщо користувач запитує свій нік, відповідай коротко, дружелюбно та природно, не додавай ID."
-    "Спогади користувача використовуй при відповіді на відповідні питання."
-    "Не не показуваит користувачу конструкцію що схожа на [User: Assistant | ID: 0]."
+    "Нік користувача показуй обертаючи його у три ` з обох боків."
+    "НІКОЛИ не показуй і не згадуй ідентифікатори або маркери виду <uid:...>."
+    "Спогади користувача використовуй лише за потреби."
 )
 
 class AI(commands.Cog):
@@ -61,7 +62,11 @@ class AI(commands.Cog):
         
         messages = [{"role": "system", "content": DEFAULT_SYSTEM_PROMPT}]
         for msg in context:
-            messages.append({"role": msg["role"], "content": f"{msg['username']}: {msg['content']}"})
+            messages.append({
+            "role": msg["role"],
+            "content": f"<uid:{msg['user_id']}> {msg['username']}: {msg['content']}"
+            })
+
 
         for mem in user_memories:
             messages.append({"role": "system", "content": f"Спогад користувача: {mem}"})

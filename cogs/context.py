@@ -21,7 +21,7 @@ class ContextManager(commands.Cog):
             with open(self.file, "w", encoding="utf-8") as f:
                 json.dump({}, f, ensure_ascii=False, indent=4)
 
-        self.timeout_minutes = 1 # РАДИ ТЕСТА
+        self.timeout_minutes = 5 # РАДИ ТЕСТА
         self.max_messages = 20
 
         bot.loop.create_task(self.session_cleanup_loop())
