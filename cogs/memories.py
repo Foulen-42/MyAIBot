@@ -1,8 +1,10 @@
 import json
 import os
+from disnake.ext import commands
 
-class MemoriesManager:
-    def __init__(self):
+class MemoriesManager(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
         self.folder = "data"
         os.makedirs(self.folder, exist_ok=True)
 
@@ -40,3 +42,6 @@ class MemoriesManager:
         if uid in data:
             del data[uid]
             self.save(data)
+
+def setup(bot):
+    bot.add_cog(MemoriesManager(bot))
